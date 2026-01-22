@@ -29,7 +29,7 @@ todos_sorted = sorted(st.session_state.todos, key=lambda x: x["deadline"])
 
 for i, todo in enumerate(todos_sorted):
     # 色分け: 高→赤, 中→オレンジ, 低→緑
-    color = {"高": "red", "中": "orange", "低": "green"}[todo["priority"]]
+    color = {"5": "red", "4": "orange", "3": "yellow","2": "green","1": "blue"}[todo["priority"]]
     
     col1, col2, col3, col4, col5 = st.columns([0.05, 0.4, 0.15, 0.2, 0.1])
     
