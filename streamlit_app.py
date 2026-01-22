@@ -1,23 +1,122 @@
 import streamlit as st
-from supabase import create_client
+import random
+import pandas as pd
+from datetime import date
+import os
 
-# Supabase に接続
-supabase = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
+st.set_page_config(page_title="癒しアプリ", layout="centered")
+st.title("🌿 今日の癒しアプリ")
+st.caption("ストレスを可視化して、癒しポイントとツッコミでちょっと笑えるアプリ")
 
-st.title("Todo List")
+# --- CSV保存設定 ---
+csv_file = "healing_log.csv"
 
-# Todo 追加
-new_todo = st.text_input("新しいTodo")
-if st.button("追加") and new_todo:
-    supabase.table("todos").insert({"title": new_todo}).execute()
-    st.success("追加しました！")
+# --- 初期化 ---
+if "logs" not in st.session_state:
+    if os.path.exists(csv_file):
+        st.session_state.logs = pd.read_csv(csv_file)
+    else:
+        st.session_state.logs = pd.DataFrame(columns=["日付", "ストレス度", "癒しポイント", "ツッコミ", "メモ"])
 
-# Todo 一覧取得
-todos = supabase.table("todos").select("*").execute().data
+# --- 入力 ---
+st.subheader("今日のストレス度を教えて")
+stress = st.slider("1:超平和〜5:限界超え", 1.0, 5.0, 3.0, 0.1)
 
-# Todo 表示（タイトルと完了チェックボックス）
-for todo in todos:
-    completed = st.checkbox(todo["title"], value=todo["completed"], key=todo["id"])
-    # 完了状態の更新
-    if completed != todo["completed"]:
-        supabase.table("todos").update({"completed": completed}).eq("id", todo["id"]).execute()
+st.subheader("今日の気分・状況を一言")
+mood = st.text_input("例：仕事で疲れた、勉強しんどい、たのし")
+
+# --- 癒しポイントレパートリー ---
+relax_tips = [
+    "深呼吸して5秒キープ", "お気に入りの飲み物で一息",
+    "ちょっと外に出て日光を浴びる", "軽くストレッチしてみる",
+    "猫動画を見る（無敵）", "コーヒー片手に妄想タイム",
+    "チョコひとかけで幸せ補充", "スマホ置いて目を閉じる",
+    "お気に入りの曲を1曲聴く", "手をもみもみしてリラックス",
+    "深呼吸しながら変顔してみる", "ラーメン食べる妄想する",
+    "お風呂で1分間瞑想", "今日1つラッキーなこと思い出す",
+    "空を眺めて1分ぼーっとする", "ストレスを紙に書いて破る",
+    "軽く腕立て10回", "好きな香りで深呼吸", "窓を開けて新鮮な空気吸う"
+] * 3
+
+# --- ツッコミコメント100種類 ---
+funny_comments = [
+    "今日も脳みそ半休やな", "ストレス高め…アイスでごまかすしかないで！",
+    "無理すんな、人生はラーメンの汁と同じやで", "大丈夫、猫は全部許してくれる",
+    "ふーん、そういう日やな", "深呼吸より先に笑っとけ", "今日は寝落ち推奨やで",
+    "脳みそは有給休暇中です", "コーヒーを求めて彷徨う日やな", "やる気スイッチは押さなくてOK",
+    "ストレス値が高すぎてセンサー壊れたかも", "ちょっと遊んでもええ日やで",
+    "今日のあなたの精神力…MAXは無理やな", "笑いでカロリー消費や", "深呼吸しても酸素足りんかも",
+    "ラーメン欲、爆上がりやな", "脳みそお休みモード突入中", "今日の運は財布の中にあるかも",
+    "アイスを食べる権利、発生してます", "コーヒー一口で世界が変わる日",
+    "ストレス値5はアイスで打ち消せ", "寝る前に猫動画マストやで", "無理せずチョコを食べる勇気を持て",
+    "深呼吸3回で心が柔らかくなる", "今日も頑張った、偉いで！", "靴下片方忘れても問題なし",
+    "洗濯物に癒される日やな", "スマホの通知は無視でOK", "深呼吸しながら妄想タイム",
+    "お風呂タイムは神タイム", "窓を開けて新鮮な空気を吸うんや", "軽くストレッチで気分転換",
+    "お気に入りの曲でリフレッシュ", "今日は頭を空っぽにしてOK", "手をもみもみするだけで幸せ",
+    "今日の運勢は猫が教えてくれる", "アイスを食べたら勝ちやで", "コーヒー片手に深呼吸",
+    "眠気は無理に我慢せんでOK", "ストレス値が高いときは笑うしかない",
+    "今日のラーメンは心の栄養", "深呼吸で宇宙とつながる日や", "小さな幸せを見つける日",
+    "今日は何もせんでもOK", "笑顔は万能薬やで", "脳みそが甘いものを求めとる",
+    "妄想タイムは神聖な時間", "今日のストレスは砂に流す", "好きな香りで気分アップ",
+    "今日はお菓子食べ放題気分", "窓の外をぼーっと眺める", "ラーメン欲、発動中",
+    "ストレス値3はアイスでリセット", "今日は寝坊OK", "猫動画で癒しMAX",
+    "深呼吸10回で世界が穏やかになる", "スマホを置いてリラックス", "今日のあなたは無敵や",
+    "笑いでストレス値が減る日", "脳みそ休暇中、代わりにアイスが動く", "チョコでやる気補充",
+    "お気に入り曲で踊ってみる", "妄想でストレス撃退", "お風呂に浸かって宇宙と会話",
+    "軽く散歩して頭スッキリ", "今日のラッキーアイテムは靴下", "眠気は宇宙の合図",
+    "深呼吸しながら歌ってみる", "小さな幸せをメモする日", "ラーメンの汁で元気回復",
+    "アイス食べて自分を褒める", "コーヒーで気分リフレッシュ", "今日の癒しは猫任せ",
+    "スマホ通知は気にせんでOK", "深呼吸タイムで心穏やか", "妄想は自由にしてええ日",
+    "今日のやる気スイッチは探す日", "笑顔で乗り切る日", "脳みそお休み日",
+    "ストレス値5はアイス必須", "今日の運勢はラーメン次第", "眠気は無理せず任せる",
+    "軽くストレッチでリセット", "お風呂で全てを流す日", "好きな香りで幸せ補充",
+    "深呼吸しながら妄想", "今日は寝落ち歓迎日", "笑いは万能薬",
+    "脳みそ休暇中、心はフル稼働", "チョコを食べる権利あり", "お気に入り曲で元気補充",
+    "妄想タイムでストレスOFF", "散歩で頭スッキリ", "ラーメンで癒される日",
+    "窓を開けて新鮮空気", "アイスでストレス値0に", "コーヒー片手に妄想",
+    "今日も脳みそ半休中", "笑いで幸せ増量", "お風呂タイムは神タイム",
+    "深呼吸で宇宙とつながる", "ストレス値3は笑いで回復", "今日のあなたは無敵やで",
+    "脳みそが甘いもの求む", "軽く踊って気分リフレッシュ", "窓の外眺めてリセット",
+    "ラーメン欲、MAX", "深呼吸しながらチョコ", "スマホ置いて瞑想タイム",
+    "小さな幸せを探す日", "今日も頑張った、偉いで", "ストレス値は笑いで軽減",
+    "アイスで自分を褒める日", "深呼吸と妄想のコラボ", "お風呂で宇宙と会話する日",
+    "今日のラッキーアイテムは靴下"
+]
+
+# --- 生成 ---
+if st.button("🧘 癒しポイントを出す"):
+    num_tips = max(1, int(round(6 - stress)))
+    tips_to_show = random.sample(relax_tips, k=num_tips)
+    comment_out = random.choice(funny_comments)
+
+    # --- 表示 ---
+    st.subheader("🌟 今日の癒しポイント")
+    for tip in tips_to_show:
+        st.write(f"- {tip}")
+
+    st.subheader("💬 今日のツッコミ")
+    st.info(comment_out)
+
+    if mood:
+        st.subheader("📝 自分メモ")
+        st.code(mood)
+
+    # --- 保存 ---
+    new_entry = pd.DataFrame({
+        "日付": [date.today().isoformat()],
+        "ストレス度": [stress],
+        "癒しポイント": ["; ".join(tips_to_show)],
+        "ツッコミ": [comment_out],
+        "メモ": [mood]
+    })
+
+    st.session_state.logs = pd.concat([st.session_state.logs, new_entry], ignore_index=True)
+    st.session_state.logs.to_csv(csv_file, index=False)
+    st.success("✅ 今日のデータを保存しました！")
+
+# --- 過去ログ表示 ---
+st.subheader("📚 過去の癒しログ")
+if not st.session_state.logs.empty:
+    st.dataframe(st.session_state.logs)
+else:
+    st.write("まだ記録はありません。")
