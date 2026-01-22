@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import date
 
-st.title("大学生向け Todo リスト")
+st.title(" Todo リスト")
 
 # セッションにタスクを保存
 if "todos" not in st.session_state:
@@ -11,7 +11,7 @@ if "todos" not in st.session_state:
 with st.form("new_task"):
     title = st.text_input("タスク名")
     deadline = st.date_input("締切日", value=date.today())
-    priority = st.selectbox("優先度", ["高", "中", "低"])
+    priority = st.selectbox("優先度", ["5", "4", "3","2","1"])
     category = st.selectbox("カテゴリ", ["授業", "課題", "バイト", "その他"])
     submitted = st.form_submit_button("追加")
     
