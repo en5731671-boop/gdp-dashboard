@@ -1,5 +1,8 @@
 import streamlit as st
-from datetime import date
+from supabase import create_client
+url="https://sfjpcncnwgbusepelhyn.supabase.co"
+key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmanBjbmNud2didXNlcGVsaHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTAxNDksImV4cCI6MjA4NDYyNjE0OX0.yFTDLNcWvM-9DboHlSSyEyPtex6V8NW3GBfr8lee8Bs"
+supabase=create_client(url,key)
 
 st.title(" Todo リスト")
 
