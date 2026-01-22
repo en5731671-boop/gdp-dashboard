@@ -1,29 +1,52 @@
 import streamlit as st
+from datetime import date
 
-st.title("シンプル Todo リスト")
+st.title("大学生向け Todo リスト")
 
-# Todo をセッションに保存
+# セッションにタスクを保存
 if "todos" not in st.session_state:
     st.session_state.todos = []
 
-# Todo 追加
-new_todo = st.text_input("新しいTodo")
-if st.button("追加") and new_todo:
-    st.session_state.todos.append({"title": new_todo, "completed": False})
-    new_todo = ""  # 入力欄を空に
-
-# Todo 表示
-for i, todo in enumerate(st.session_state.todos):
-    col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
+# 新しいタスク入力
+with st.form("new_task"):
+    title = st.text_input("タスク名")
+    deadline = st.date_input("締切日", value=date.today())
+    priority = st.selectbox("優先度", ["高", "中", "低"])
+    category = st.selectbox("カテゴリ", ["授業", "課題", "バイト", "その他"])
+    submitted = st.form_submit_button("追加")
     
-    # 完了チェックボックス
+    if submitted and title:
+        st.session_state.todos.append({
+            "title": title,
+            "deadline": deadline,
+            "priority": priority,
+            "category": category,
+            "completed": False
+        })
+
+# Todo 一覧表示（期限順）
+todos_sorted = sorted(st.session_state.todos, key=lambda x: x["deadline"])
+
+for i, todo in enumerate(todos_sorted):
+    # 色分け: 高→赤, 中→オレンジ, 低→緑
+    color = {"高": "red", "中": "orange", "低": "green"}[todo["priority"]]
+    
+    col1, col2, col3, col4, col5 = st.columns([0.05, 0.4, 0.15, 0.2, 0.1])
+    
+    # 完了チェック
     checked = col1.checkbox("", value=todo["completed"], key=f"chk{i}")
     st.session_state.todos[i]["completed"] = checked
     
-    # タイトル表示
-    col2.write(todo["title"])
+    # タスク名 + カテゴリ
+    col2.markdown(f"**{todo['title']}**  ({todo['category']})")
+    
+    # 締切日
+    col3.write(todo["deadline"].strftime("%Y-%m-%d"))
+    
+    # 優先度
+    col4.markdown(f"<span style='color:{color}'>{todo['priority']}</span>", unsafe_allow_html=True)
     
     # 削除ボタン
-    if col3.button("削除", key=f"del{i}"):
+    if col5.button("削除", key=f"del{i}"):
         st.session_state.todos.pop(i)
-        break  # pop したらループを抜ける
+        break
